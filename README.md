@@ -1,4 +1,4 @@
-# Get-BaApiXml
+# Invoke-OdinApi
 ### How to use
 Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip
 Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules
