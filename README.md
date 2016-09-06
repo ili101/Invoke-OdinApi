@@ -107,6 +107,7 @@ $Parameters = [ordered]@{
 #>
 
 #<# Fake Example with Base64
+# To use the Base64 Class you need to load it the first time from the module with the command "Import-Module Invoke-OdinApi-master"
 $Method = 'pem.TestNotReal'
 $Parameters = [ordered]@{
     'subscription_id' = $Subscription
