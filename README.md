@@ -52,7 +52,7 @@ $Parameters = [ordered]@{
 $Method = 'SubscriptionStop_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'Comment' = 'Subscription stopped due to hold'
+    'Comment' = 'Subscription stopped'
 }
 #>
 
@@ -61,7 +61,7 @@ $Method = 'SubscriptionTakeFromCreditHold_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
     'ReasonID' = [int]1
-    'Comment' = 'Subscription cancellation due to hold'
+    'Comment' = 'Released from hold'
 }
 #>
 
@@ -131,3 +131,6 @@ else
 #>
 #endregion ############ OA Example Calls ############
 ```
+
+### Contributing
+Just fork and send pull requests, Thank you!
