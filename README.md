@@ -18,7 +18,6 @@ Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\
 ```powershell
 [int]$Subscription = 1001880
 
-
 #region ############ BA Example Calls ############
 #<# Example PlaceSubscriptionCancellationOrder_API
 $Method = 'PlaceSubscriptionCancellationOrder_API'
