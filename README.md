@@ -1,5 +1,5 @@
 # Invoke-OdinApi
-Execute Odin "Operations Automation" and "Business Automation" API commands from PowerShell.
+Execute Odin "Operations Automation" and "Business Automation" API commands from PowerShell.<br>
 Can execute API commands and decode the response or generate a request XML
 
 ####BA
