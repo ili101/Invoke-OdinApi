@@ -1,4 +1,15 @@
 # Invoke-OdinApi
+Execute Odin "Operations Automation" and "Business Automation" API commands from PowerShell.
+Can execute API commands and decode the response or generate a request XML
+
+####BA
+* Supports all data types: i4(int),double,"string"
+* Decode Base64 fault
+* Extract the Result from the response XML 
+
+####OA
+* Supports all data types: int,bigint,string,boolean,base64,struct,array
+
 ### How to use
 Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip
 Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules
