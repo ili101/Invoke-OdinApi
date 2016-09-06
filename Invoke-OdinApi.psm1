@@ -43,7 +43,7 @@ function Invoke-OdinApi
         .DESCRIPTION
         Execute Odin "Operations Automation" and "Business Automation" API commands
         .EXAMPLE
-        Get-Something
+        Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
     #>
     [CmdletBinding()]
     param
