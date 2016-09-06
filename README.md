@@ -11,10 +11,13 @@ Can execute API commands and decode the response or generate a request XML
 * Supports all data types: int,bigint,string,boolean,base64,struct,array
 
 ### How to use
-Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip
-Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules
-
-### Examples:
+Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip<br>
+Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules<br>
+And run
+```powershell
+Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
+```
+### More Examples:
 ```powershell
 [int]$Subscription = 1001880
 
