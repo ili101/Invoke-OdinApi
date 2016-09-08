@@ -142,7 +142,7 @@ else
     $Out
 }
 
-# If "-OutputXml" switch was used ypu can then run this
+# If "-OutputXml" switch was used you can then run this to convert the XML
 $Out2 = ConvertFrom-OdinApiXml -Xml $Out
 $Out2
 #>
