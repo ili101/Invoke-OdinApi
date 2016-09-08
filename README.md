@@ -123,13 +123,15 @@ $Parameters = [ordered]@{
 #>
 #endregion ############ OA Example Calls ############
 
-
-#<# Execute OA
+#<# Execute the API call
 $Fqdn = '123.123.123.123'
-
 $Out = $null
+
+# For Business Automation
 $Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-OutputXml #-Verbose
+# For Operations Automation
 $Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -SendTo $Fqdn -OutputXml #-Verbose
+
 if ($Out -is [System.Xml.XmlDocument])
 {
     Format-Xml -Xml $Out
@@ -138,6 +140,8 @@ else
 {
     $Out
 }
+
+# If "-OutputXml" switch was used ypu can then run this
 $Out2 = ConvertFrom-OdinApiXml -Xml $Out
 $Out2
 #>
