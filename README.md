@@ -77,7 +77,7 @@ $Parameters = [ordered]@{
 
 #region ############ OA Example Calls ############
 #<# One liner example for pem.statistics.getStatisticsReport
-Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
+Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123'
 #>
 
 #<# Example pem.getSubscription
