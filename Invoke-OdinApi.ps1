@@ -35,6 +35,76 @@ public class Base64
 "@
 }
 
+function ConvertFrom-OdinApiXml
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory=$true, Position=1)]
+        $Xml
+    )
+
+    if ($Xml -is [System.Xml.XmlDocument])
+    {
+        $Xml = $Xml.methodResponse
+    }
+    if ($Xml.Name -eq 'methodResponse')
+    {
+        $Xml = $Xml.FirstChild
+    }
+    if ($Xml.Name -eq 'params')
+    {
+        $Xml = $Xml.FirstChild
+    }
+    if ($Xml.Name -eq 'param')
+    {
+        $Xml = $Xml.FirstChild
+    }
+    if ($Xml.Name -eq 'value')
+    {
+        $Xml = $Xml.FirstChild
+    }
+    if ($Xml.Name -eq 'struct')
+    {
+        $Response = @{}
+        $Xml.member | ForEach-Object -Process {
+            $Response.Add($_.name, (ConvertFrom-OdinApiXml -Xml ($_.value)))
+        }
+        $Response = New-Object -TypeName PSObject -Property $Response
+    } 
+    elseif($Xml.Name -eq 'array')
+    {
+        $Response = @()
+        $Xml.data.value | ForEach-Object -Process {
+            $Response += (ConvertFrom-OdinApiXml -Xml ($_))
+        }
+    }
+    elseif($Xml.Name -eq 'fault')
+    {
+        $Response = ConvertFrom-OdinApiXml -Xml ($Xml.value)
+        if ($Response.faultCode -eq -1)
+        {
+            $Response.faultString = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Response.faultString)))            
+        }
+        Write-Error -Message ('Odin Error: faultCode: "{0}", faultString: "{1}"' -f $Response.faultCode,$Response.faultString) -ErrorAction Stop
+    }
+    elseif($Xml.Name -eq 'i4')
+    {
+        [int]$Response = $Xml.InnerXml
+    }
+    elseif($Xml.Name -eq 'boolean')
+    {
+        [boolean]$Response = [int]::Parse($Xml.InnerXml)
+    }
+    else
+    {
+        $Response = $Xml.InnerXml
+    }
+
+    Write-Verbose -Message ($Response | Out-String)
+    $Response
+}
+
 function Invoke-OdinApi
 {
     <#
@@ -67,17 +137,21 @@ function Invoke-OdinApi
         # The methods parameters, Ordered hashtable required for BA, ordered hashtable or a normal hashtable required for OA.
         [Parameter(Mandatory=$true, Position=2)]
         $Parameters,
-        # IP:Port to send the call to, if not provided the API request is returned.
+        # IP to send the call to, if not provided the API request is returned.
         [Parameter(Mandatory=$false, Position=3)]
         [System.String]
-        $SendTo = $null
+        $SendTo = $null,
+        # Return the unconverted result XML
+        [Parameter(Mandatory=$false, Position=4)]
+        [switch]
+        $OutputXml
     )
 
     if ($BA)
     {
         if ($Parameters -isnot [System.Collections.Specialized.OrderedDictionary])
         {
-            Write-Error -Message 'Error: ParametersHash is not an ordered hashtable' -ErrorAction Stop
+            Write-Error -Message 'Error: Parameters is not an ordered hashtable' -ErrorAction Stop
         }
 
         # Create The Document
@@ -124,36 +198,12 @@ function Invoke-OdinApi
                                                         Write-Error -Message ('Parameter "{0}" is of unsupported type "{1}"' -f $Parameter.Key,$Parameter.GetType().Name) -ErrorAction Stop
                                                     }
                                             }
-        if ($SendTo)
-        {
-            Write-Verbose -Message $RequestXML.InnerXml
-            $Url = 'http://' + $SendTo
-            $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method Post
-
-            if ($ResponseXML.methodResponse.fault)
-            {
-                $Base64 = $ResponseXML.selectsinglenode("methodResponse/fault/value/struct/member[name='faultString']/value").string
-                Write-Error -Message ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Base64)))
-            }
-            elseif ($Status = $ResponseXML.selectsinglenode("methodResponse/params/param/value/struct/member[name='Result']/value/array/data/value/struct/member[name='Status']/value").string)
-            {
-                $Status
-            }
-            else
-            {
-                $ResponseXML
-            }
-        }
-        else
-        {
-            $RequestXML
-        }
     }
     elseif ($OA)
     {
-        if ($Parameters -isnot [System.Collections.Hashtable] -and $Parameters -isnot [System.Collections.Specialized.OrderedDictionary])
+        if ($Parameters -isnot [System.Collections.Hashtable] -and $Parameters -isnot [System.Collections.Specialized.OrderedDictionary] -and $Parameters -isnot [System.Array])
         {
-            Write-Error -Message 'Error: ParametersHash is not a hashtable' -ErrorAction Stop
+            Write-Error -Message 'Error: Parameters is not a hashtable or array' -ErrorAction Stop
         }
 
         # Create The Document
@@ -163,68 +213,84 @@ function Invoke-OdinApi
         $TempElement = $RequestXML.AppendChild($RequestXML.CreateElement('methodCall'))
             $TempElement.AppendChild($RequestXML.CreateElement('methodName')).InnerText = $Method
             $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('params'))
-                $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('param'))
-                    function Set-Members
-                    {
-                        param ($Parameter = $null)
-                        $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
-                            if ($Parameter -is [int])
-                            {
-                                $TempElement.AppendChild($RequestXML.CreateElement('int')).InnerText = $Parameter
-                            }
-                            elseif ($Parameter -is [Int64])
-                            {
-                                $TempElement.AppendChild($RequestXML.CreateElement('bigint')).InnerText = $Parameter
-                            }
-                            elseif ($Parameter -is [string])
-                            {
-                                $TempElement.AppendChild($RequestXML.CreateElement('string')).InnerText = $Parameter
-                            }
-                            elseif ($Parameter -is [Boolean])
-                            {
-                                $TempElement.AppendChild($RequestXML.CreateElement('boolean')).InnerText = if ($Parameter) {1} else {0}
-                            }
-                            elseif ($Parameter -is [Base64])
-                            {
-                                $TempElement.AppendChild($RequestXML.CreateElement('base64')).InnerText = $Parameter
-                            }
-                            elseif ($Parameter -is [System.Collections.Hashtable] -or $Parameter -is [System.Collections.Specialized.OrderedDictionary]) #struct
-                            {
-                                $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
-                                    ForEach ($Param in $Parameter.GetEnumerator())
-                                    {
-                                        Write-Verbose -Message ($Param | Out-String)
-                                        $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                            $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = $Param.Key
-                                            Set-Members -Parameter $Param.Value
-                                    }
-                            }
-                            elseif ($Parameter -is [System.Array]) #array
-                            {
-                                $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('array'))
-                                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('data'))
-                                        ForEach ($Item in $Parameter)
+                ForEach ($Parameter in $Parameters)
+                {
+                        if ($Parameter -isnot [System.Collections.Hashtable] -and $Parameter -isnot [System.Collections.Specialized.OrderedDictionary])
+                        {
+                            Write-Error -Message 'Error: Parameters array do not contain a hashtable' -ErrorAction Stop
+                        }
+                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('param'))
+                        function Set-Members
+                        {
+                            param ($Parameter = $null)
+                            $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
+                                if ($Parameter -is [int])
+                                {
+                                    $TempElement.AppendChild($RequestXML.CreateElement('int')).InnerText = $Parameter
+                                }
+                                elseif ($Parameter -is [Int64])
+                                {
+                                    $TempElement.AppendChild($RequestXML.CreateElement('bigint')).InnerText = $Parameter
+                                }
+                                elseif ($Parameter -is [string])
+                                {
+                                    $TempElement.AppendChild($RequestXML.CreateElement('string')).InnerText = $Parameter
+                                }
+                                elseif ($Parameter -is [Boolean])
+                                {
+                                    $TempElement.AppendChild($RequestXML.CreateElement('boolean')).InnerText = if ($Parameter) {1} else {0}
+                                }
+                                elseif ($Parameter -is [Base64])
+                                {
+                                    $TempElement.AppendChild($RequestXML.CreateElement('base64')).InnerText = $Parameter
+                                }
+                                elseif ($Parameter -is [System.Collections.Hashtable] -or $Parameter -is [System.Collections.Specialized.OrderedDictionary]) #struct
+                                {
+                                    $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
+                                        ForEach ($Param in $Parameter.GetEnumerator())
                                         {
-                                            Write-Verbose -Message ($Item | Out-String)
-                                            Set-Members -Parameter $Item
+                                            Write-Verbose -Message ($Param | Out-String)
+                                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
+                                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = $Param.Key
+                                                Set-Members -Parameter $Param.Value
                                         }
-                            }
-                            else
-                            {
-                                Write-Error -Message ('Parameter "{0}" is of unsupported type "{1}"' -f $Parameter,$Parameter.GetType().Name) -ErrorAction Stop
-                            }
-                    }
-                Set-Members -Parameter $Parameters
-        if ($SendTo)
+                                }
+                                elseif ($Parameter -is [System.Array]) #array
+                                {
+                                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('array'))
+                                        $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('data'))
+                                            ForEach ($Item in $Parameter)
+                                            {
+                                                Write-Verbose -Message ($Item | Out-String)
+                                                Set-Members -Parameter $Item
+                                            }
+                                }
+                                else
+                                {
+                                    Write-Error -Message ('Parameter "{0}" is of unsupported type "{1}"' -f $Parameter,$Parameter.GetType().Name) -ErrorAction Stop
+                                }
+                        }
+                    Set-Members -Parameter $Parameter
+                }
+    }
+    if ($SendTo)
+    {
+        Write-Verbose -Message $RequestXML.InnerXml
+        if ($BA) {$Port = '5224'} else {$Port = '8440'}
+        $Url = 'http://' + $SendTo + ':' +  $Port
+        $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method Post
+
+        if ($OutputXml)
         {
-            Write-Verbose -Message $RequestXML.InnerXml
-            $Url = 'http://' + $SendTo
-            $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method Post
             $ResponseXML
         }
         else
         {
-            $RequestXML
+            ConvertFrom-OdinApiXml -Xml $ResponseXML
         }
+    }
+    else
+    {
+        $RequestXML
     }
 }

@@ -2,13 +2,17 @@
 Execute Odin "Operations Automation" and "Business Automation" API commands from PowerShell.<br>
 Can execute API commands and decode the response or generate a request XML
 
+####Warning!
+This module is shipped "as is", I did not fully tested it, Neither I nor anyone else responsible for any loss or damage resulting from using the code in this module.
+
 ####BA
 * Supports all data types: i4(int),double,"string"
 * Decode Base64 fault
-* Extract the Result from the response XML 
+* Convert the Result to a Powershell Object from the response XML
 
 ####OA
 * Supports all data types: int,bigint,string,boolean,base64,struct,array
+* Convert the Result to a Powershell Object from the response XML
 
 ### How to use
 Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip<br>
@@ -17,6 +21,10 @@ Then you can start using it, for example:
 ```powershell
 Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
 ```
+
+### Contributing
+Just fork and send pull requests, Thank you!
+
 ### More Examples:
 ```powershell
 [int]$Subscription = 1001880
@@ -64,26 +72,13 @@ $Parameters = [ordered]@{
     'Comment' = 'Released from hold'
 }
 #>
-
-#<# Execute BA
-$Fqdn = '123.123.123.123:5224'
-
-$Xml = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn 
-if ($Xml -is [System.Xml.XmlDocument])
-{
-    Format-Xml -Xml $Xml
-}
-else
-{
-    $Xml
-}
-#>
 #endregion ############ BA Example Calls ############
 
+
 #region ############ OA Example Calls ############
+
 #<# One liner example for pem.statistics.getStatisticsReport
-$Xml = Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
-Format-Xml -Xml $Xml
+Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
 #>
 
 #<# Example pem.getSubscription
@@ -92,6 +87,19 @@ $Parameters = [ordered]@{
     'subscription_id' = $Subscription
     'get_resources' = $true
 }
+#>
+
+#<# Example pem.batchRequest of pem.statistics.getStatisticsReport and pem.getSubscription
+$Method = 'pem.batchRequest'
+$getStatisticsReport = @{operation = 'pem.statistics.getStatisticsReport' ; parameters =@(@{reports=@(@{name='poaVersion'; value='0'})}) }
+$getSubscription = [ordered]@{
+    'operation' = 'pem.getSubscription'
+    'parameters' = @([ordered]@{
+        'subscription_id' = $Subscription
+        'get_resources' = $true
+    })
+}
+$Parameters = @($getStatisticsReport,$getSubscription)
 #>
 
 #<# Example pem.setMemberSubscriptionRestrictions
@@ -114,23 +122,24 @@ $Parameters = [ordered]@{
     'get_resources' = [Base64]'Base64Text'
 }
 #>
+#endregion ############ OA Example Calls ############
+
 
 #<# Execute OA
-$Fqdn = '123.123.123.123:8440'
+$Fqdn = '123.123.123.123'
 
-$Xml = $null
-$Xml = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters #-SendTo $Fqdn #-Verbose
-if ($Xml -is [System.Xml.XmlDocument])
+$Out = $null
+$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-OutputXml #-Verbose
+$Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -SendTo $Fqdn -OutputXml #-Verbose
+if ($Out -is [System.Xml.XmlDocument])
 {
-    Format-Xml -Xml $Xml
+    Format-Xml -Xml $Out
 }
 else
 {
-    $Xml
+    $Out
 }
+$Out2 = ConvertFrom-OdinApiXml -Xml $Out
+$Out2
 #>
-#endregion ############ OA Example Calls ############
 ```
-
-### Contributing
-Just fork and send pull requests, Thank you!
