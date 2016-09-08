@@ -24,6 +24,7 @@ Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{re
 
 ### Contributing
 Just fork and send pull requests, Thank you!
+Format-Xml was written by Jaykul credit goes to him, for the latest version see his repository https://github.com/Jaykul/Xml
 
 ### More Examples:
 ```powershell
