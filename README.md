@@ -19,7 +19,7 @@ Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip<br>
 Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules<br>
 Then you can start using it, for example:
 ```powershell
-Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
+Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123'
 ```
 
 ### Contributing
