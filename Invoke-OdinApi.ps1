@@ -76,7 +76,7 @@ function ConvertFrom-OdinApiXml
     {
         $Response = @()
         $Xml.data.value | ForEach-Object -Process {
-            $Response += (ConvertFrom-OdinApiXml -Xml ($_))
+            $Response += , (ConvertFrom-OdinApiXml -Xml ($_))
         }
     }
     elseif($Xml.Name -eq 'fault')
@@ -279,6 +279,7 @@ function Invoke-OdinApi
         if ($BA) {$Port = '5224'} else {$Port = '8440'}
         $Url = 'http://' + $SendTo + ':' +  $Port
         $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method Post
+        $ResponseXML = [xml][System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes($ResponseXML.InnerXml))
 
         if ($OutputXml)
         {

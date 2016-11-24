@@ -15,8 +15,14 @@ This module is shipped "as is", I did not fully tested it, Neither I nor anyone 
 * Convert the Result to a Powershell Object from the response XML
 
 ### How to use
-Download https://github.com/ili101/Invoke-OdinApi/archive/master.zip<br>
-Extract the zip (with the folder) to: %USERPROFILE%\Documents\WindowsPowerShell\Modules<br>
+Download and install by opening PowerShell and running:
+```powershell
+# Install for all users (Require running PowerShell as Admin to install)
+Install-Module -Name Invoke-OdinApi
+
+# Install for Current User only
+Install-Module -Name Invoke-OdinApi -Scope CurrentUser
+```
 Then you can start using it, for example:
 ```powershell
 Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123'
@@ -27,123 +33,7 @@ Just fork and send pull requests, Thank you!<br>
 Format-Xml was written by Jaykul credit goes to him, for the latest version see his repository https://github.com/Jaykul/Xml
 
 ### More Examples:
-```powershell
-[int]$Subscription = 1001880
+(https://github.com/ili101/Invoke-OdinApi/blob/master/Examples/Invoke-OdinApi Example.ps1)
 
-#region ############ BA Example Calls ############
-#<# Example PlaceSubscriptionCancellationOrder_API
-$Method = 'PlaceSubscriptionCancellationOrder_API'
-$Parameters = [ordered]@{
-    'SubscriptionID' = $Subscription
-    'CancelType' = [int]30
-    'ReasonID' = [int]14
-    'Descr' = 'Subscription cancellation'
-}
-#>
-
-#<# Example SubscriptionDetailsGetEx_API
-$Method = 'SubscriptionDetailsGetEx_API'
-$Parameters = [ordered]@{
-    'SubscriptionID' = $Subscription
-}
-#>
-
-#<# Example IncrementResourceUsage_API
-$Method = 'IncrementResourceUsage_API'
-$Parameters = [ordered]@{
-    'SubscriptionID' = $Subscription
-    'ResourceID' = [int]100003
-    'DeltaAmount' = [double]3
-}
-#>
-
-#<# Example SubscriptionStop_API
-$Method = 'SubscriptionStop_API'
-$Parameters = [ordered]@{
-    'SubscriptionID' = $Subscription
-    'Comment' = 'Subscription stopped'
-}
-#>
-
-#<# Example SubscriptionTakeFromCreditHold_API
-$Method = 'SubscriptionTakeFromCreditHold_API'
-$Parameters = [ordered]@{
-    'SubscriptionID' = $Subscription
-    'ReasonID' = [int]1
-    'Comment' = 'Released from hold'
-}
-#>
-#endregion ############ BA Example Calls ############
-
-
-#region ############ OA Example Calls ############
-#<# One liner example for pem.statistics.getStatisticsReport
-Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123'
-#>
-
-#<# Example pem.getSubscription
-$Method = 'pem.getSubscription'
-$Parameters = [ordered]@{
-    'subscription_id' = $Subscription
-    'get_resources' = $true
-}
-#>
-
-#<# Example pem.batchRequest of pem.statistics.getStatisticsReport and pem.getSubscription
-$Method = 'pem.batchRequest'
-$getStatisticsReport = @{operation = 'pem.statistics.getStatisticsReport' ; parameters =@(@{reports=@(@{name='poaVersion'; value='0'})}) }
-$getSubscription = [ordered]@{
-    'operation' = 'pem.getSubscription'
-    'parameters' = @([ordered]@{
-        'subscription_id' = $Subscription
-        'get_resources' = $true
-    })
-}
-$Parameters = @($getStatisticsReport,$getSubscription)
-#>
-
-#<# Example pem.setMemberSubscriptionRestrictions
-$Method = 'pem.setMemberSubscriptionRestrictions'
-$restrictions = [ordered]@{
-    'access_all_subscriptions' = $false
-    'subscriptions' = @($Subscription,1000753)
-}
-$Parameters = [ordered]@{
-    'member_id' = 1000343
-    'restrictions' = $restrictions
-}
-#>
-
-#<# Fake Example with Base64
-# To use the Base64 Class you need to load it the first time from the module with the command "Import-Module Invoke-OdinApi-master"
-$Method = 'pem.TestNotReal'
-$Parameters = [ordered]@{
-    'subscription_id' = $Subscription
-    'get_resources' = [Base64]'Base64Text'
-}
-#>
-#endregion ############ OA Example Calls ############
-
-#<# Execute the API call
-$Fqdn = '123.123.123.123'
-$Out = $null
-
-# For Business Automation
-$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-OutputXml #-Verbose
-# For Operations Automation
-$Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -SendTo $Fqdn -OutputXml #-Verbose
-
-if ($Out -is [System.Xml.XmlDocument])
-{
-    Format-Xml -Xml $Out
-}
-else
-{
-    $Out
-}
-
-# If "-OutputXml" switch was used you can then run this to convert the XML
-$Out2 = ConvertFrom-OdinApiXml -Xml $Out
-$Out2
-#>
-```
+### ChangeLog:
+(https://github.com/ili101/Invoke-OdinApi/blob/master/ChangeLog.md)
