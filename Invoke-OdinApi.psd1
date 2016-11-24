@@ -12,7 +12,7 @@
 RootModule = 'Invoke-OdinApi.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.1.2'
+ModuleVersion = '1.2.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -122,7 +122,7 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = '
-## 2016.11.24 - Version 1.1
+## 2016.11.24 - Version 1.2.X
 * PowerShell module structure
   * Rearranged files
   * Fixed module name

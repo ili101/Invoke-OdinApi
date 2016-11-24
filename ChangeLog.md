@@ -1,4 +1,4 @@
-## 2016.11.24 - Version 1.1
+## 2016.11.24 - Version 1.2.X
 * PowerShell module structure
   * Rearranged files
   * Fixed module name
@@ -8,5 +8,5 @@
 * Invoke-OdinApi
   * Add conversion of output to UTF-8 to support multilanguage characters
 
-## 2016.09.08 - Version 1.0
+## 2016.09.08 - Version 1.0.0
 * Base Version
