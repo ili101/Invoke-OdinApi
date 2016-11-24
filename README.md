@@ -33,7 +33,7 @@ Just fork and send pull requests, Thank you!<br>
 Format-Xml was written by Jaykul credit goes to him, for the latest version see his repository https://github.com/Jaykul/Xml
 
 ### More Examples:
-(https://github.com/ili101/Invoke-OdinApi/blob/master/Examples/Invoke-OdinApi Example.ps1)
+[https://github.com/ili101/Invoke-OdinApi/blob/master/Examples/Invoke-OdinApi Example.ps1](https://github.com/ili101/Invoke-OdinApi/blob/master/Examples/Invoke-OdinApi Example.ps1)
 
 ### ChangeLog:
-(https://github.com/ili101/Invoke-OdinApi/blob/master/ChangeLog.md)
+https://github.com/ili101/Invoke-OdinApi/blob/master/ChangeLog.md
