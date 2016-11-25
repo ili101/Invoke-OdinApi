@@ -37,7 +37,17 @@ public class Base64
 
 function ConvertFrom-OdinApiXml
 {
-    [CmdletBinding()]
+    <#
+        .SYNOPSIS
+        convert API XML response to Object
+        .DESCRIPTION
+        If "-OutputXml" switch was used on Invoke-OdinApi you can then run this to convert the XML
+        .EXAMPLE
+        ConvertFrom-OdinApiXml -Xml $Xml
+        .LINK
+        https://github.com/ili101/Invoke-OdinApi
+    #>
+    [CmdletBinding(HelpURI='https://github.com/ili101/Invoke-OdinApi')]
     param
     (
         [Parameter(Mandatory=$true, Position=1)]
@@ -114,8 +124,10 @@ function Invoke-OdinApi
         Execute Odin "Operations Automation" and "Business Automation" API commands
         .EXAMPLE
         Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
+        .LINK
+        https://github.com/ili101/Invoke-OdinApi
     #>
-    [CmdletBinding()]
+    [CmdletBinding(HelpURI='https://github.com/ili101/Invoke-OdinApi')]
     param
     (
         # Send Business Automation API command, See http://download.automation.odin.com/oa/7.0/oapremium/portal/en/billing_api_reference/55879.htm for the list of methods and parameters.
