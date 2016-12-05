@@ -1,4 +1,5 @@
-﻿[int]$Subscription = 1001880
+﻿Pause
+[int]$Subscription = 1001880
 
 #region ############ BA Example Methods ############
 #<# Example PlaceSubscriptionCancellationOrder_API
@@ -41,6 +42,23 @@ $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
     'ReasonID' = [int]1
     'Comment' = 'Released from hold'
+}
+#>
+
+#<# Example SubscriptionStatusUpdate_API
+$Method = 'SubscriptionStatusUpdate_API'
+$Parameters = [ordered]@{
+    'SubscriptionID' = $Subscription
+    'Status' = 60
+    'ServStatus' = 10
+}
+#>
+
+#<# Example OrderStatusChange_API (Use -AddSignature)
+$Method = 'OrderStatusChange_API'
+$Parameters = [ordered]@{
+    'OrderID' = 3606153
+    'NewOrderStatus ' = 'CP'
 }
 #>
 #endregion ############ End BA Example Methods ############
@@ -101,7 +119,7 @@ $Fqdn = '123.123.123.123'
 
 $Out = $null
 # For Business Automation
-$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-OutputXml #-Verbose
+$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-Verbose #-Execute:$false #-OutputXml
 # For Operations Automation
 $Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -SendTo $Fqdn -OutputXml #-Verbose
 
