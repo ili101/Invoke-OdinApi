@@ -3,7 +3,7 @@ class Base64
 {
     [string]$ItemName
 
-    Base64([string]$String) 
+    Base64([string]$String)
     {
         $this.ItemName = $String
     }
@@ -85,7 +85,7 @@ function ConvertFrom-OdinApiXml
             $Response.Add($_.name, (ConvertFrom-OdinApiXml -Xml ($_.value)))
         }
         $Response = New-Object -TypeName PSObject -Property $Response
-    } 
+    }
     elseif($Xml.Name -eq 'array')
     {
         $Response = @()
@@ -99,7 +99,7 @@ function ConvertFrom-OdinApiXml
     elseif($Xml.Name -eq 'fault')
     {
         $Response = ConvertFrom-OdinApiXml -Xml ($Xml.value)
-        $Response.faultString = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Response.faultString)))            
+        $Response.faultString = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Response.faultString)))
         Write-Error -Message ('Odin Error: faultCode: "{0}", faultString: "{1}"' -f $Response.faultCode,$Response.faultString)
     }
     elseif($Xml.Name -eq 'i4')
@@ -172,7 +172,11 @@ function Invoke-OdinApi
         # If set to False override -SendTo and prevent sending the API call, can be used to generate request with MD5 signature.
         [Parameter(Mandatory=$false, Position=4)]
         [switch]
-        $Execute = $true
+        $Execute = $true,
+        # language.
+        [Parameter(Position=5)]
+        [String]
+        $language
     )
 
     if ($BA)
@@ -211,12 +215,12 @@ function Invoke-OdinApi
             Write-Verbose -Message ("MD5 Signature: $SignatureMd5")
             $Parameters.Add('Signature',$SignatureMd5)
         }
-        
+
 
         # Create The Document
         $RequestXML = New-Object -TypeName xml
         $null = $RequestXML.AppendChild($RequestXML.CreateXmlDeclaration('1.0','UTF-8',$null))
-        
+
         $TempElement = $RequestXML.AppendChild($RequestXML.CreateElement('methodCall'))
             $TempElement.AppendChild($RequestXML.CreateElement('methodName')).InnerText = 'Execute'
             $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('params'))
@@ -226,11 +230,18 @@ function Invoke-OdinApi
                             $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
                                 $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Server'
                                 $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = 'BM'
-        
+
                             $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
                                 $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Method'
                                 $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $Method
-        
+
+                            if ($language)
+                            {
+                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
+                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Lang'
+                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $language
+                            }
+
                             $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
                                 $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Params'
                                 $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
@@ -270,7 +281,7 @@ function Invoke-OdinApi
         # Create The Document
         $RequestXML = New-Object -TypeName xml
         $null = $RequestXML.AppendChild($RequestXML.CreateXmlDeclaration('1.0','UTF-8',$null))
-        
+
         $TempElement = $RequestXML.AppendChild($RequestXML.CreateElement('methodCall'))
             $TempElement.AppendChild($RequestXML.CreateElement('methodName')).InnerText = $Method
             $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('params'))
