@@ -176,7 +176,10 @@ function Invoke-OdinApi
         # language.
         [Parameter(Position=5)]
         [String]
-        $language
+        $language = 'iw',
+        [Parameter(ParameterSetName='Business Automation')]
+        [String]
+        $BaServerString = 'BM'
     )
 
     if ($BA)
@@ -229,7 +232,7 @@ function Invoke-OdinApi
                         $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
                             $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
                                 $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Server'
-                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = 'BM'
+                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $BaServerString
 
                             $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
                                 $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Method'
@@ -262,6 +265,18 @@ function Invoke-OdinApi
                                                     elseif ($Parameter.Value -is [string])
                                                     {
                                                         $TempElement.InnerText = $Parameter.Value
+                                                    }
+                                                    elseif ($Parameter.Value -is [System.Collections.Hashtable] -or $Parameter.Value -is [System.Collections.Specialized.OrderedDictionary]) #struct
+                                                    {
+                                                        $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
+                                                            ForEach ($Param in $Parameter.Value.GetEnumerator())
+                                                            {
+                                                                Write-Verbose -Message ($Param | Out-String)
+                                                                $memberElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
+                                                                    $memberElement.AppendChild($RequestXML.CreateElement('name')).InnerText = $Param.Name
+                                                                    $TempElement = $memberElement.AppendChild($RequestXML.CreateElement('value'))
+                                                                    $TempElement.AppendChild($RequestXML.CreateElement('string')).InnerText = $Param.Value
+                                                            }
                                                     }
                                                     else
                                                     {
