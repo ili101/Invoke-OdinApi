@@ -1,3 +1,13 @@
+## 2.0.0 - 2019-09-23
+* Separated the module to `XmlRpc.ps1` (XML-RPC standard) and `Invoke-OdinApi.ps1` (Specific Odin implementation).
+* XML-RPC uses recursion.
+* Error handling for XML-RPC and custom Odin faults.
+* BA Settings `-ServerString` and `-Credential` added.
+* `-SendTo` is now `-Server`, `-BaServerString` is now `-ServerString`, `-Execute` was replaced with native PowerShell `-WhatIf` and `-Confirm`.
+* Added `-UseSsl` and `-Port`.
+* Base64 class extended.
+* Hashtable converts to struct, Ordered hashtable converts to Array with comments.
+
 ## 2016.11.24 - Version 1.2.X
 * PowerShell module structure
   * Rearranged files

@@ -6,9 +6,9 @@
 $Method = 'PlaceSubscriptionCancellationOrder_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'CancelType' = [int]30
-    'ReasonID' = [int]14
-    'Descr' = 'Subscription cancellation'
+    'CancelType'     = [int]30
+    'ReasonID'       = [int]14
+    'Descr'          = 'Subscription cancellation'
 }
 #>
 
@@ -23,8 +23,8 @@ $Parameters = [ordered]@{
 $Method = 'IncrementResourceUsage_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'ResourceID' = [int]100003
-    'DeltaAmount' = [double]3
+    'ResourceID'     = [int]100003
+    'DeltaAmount'    = [double]3
 }
 #>
 
@@ -32,7 +32,7 @@ $Parameters = [ordered]@{
 $Method = 'SubscriptionStop_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'Comment' = 'Subscription stopped'
+    'Comment'        = 'Subscription stopped'
 }
 #>
 
@@ -40,8 +40,8 @@ $Parameters = [ordered]@{
 $Method = 'SubscriptionTakeFromCreditHold_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'ReasonID' = [int]1
-    'Comment' = 'Released from hold'
+    'ReasonID'       = [int]1
+    'Comment'        = 'Released from hold'
 }
 #>
 
@@ -49,16 +49,26 @@ $Parameters = [ordered]@{
 $Method = 'SubscriptionStatusUpdate_API'
 $Parameters = [ordered]@{
     'SubscriptionID' = $Subscription
-    'Status' = 60
-    'ServStatus' = 10
+    'Status'         = 60
+    'ServStatus'     = 10
 }
 #>
 
 #<# Example OrderStatusChange_API (Use -AddSignature)
 $Method = 'OrderStatusChange_API'
 $Parameters = [ordered]@{
-    'OrderID' = 3606153
-    'NewOrderStatus ' = 'CP'
+    'OrderID'         = 3606153
+    'NewOrderStatus ' = 'OP'
+}
+#>
+
+#<# TempBlobDocAdd_API (Use -ServerString 'BLOBDOC')
+$Method = 'TempBlobDocAdd_API'
+$Parameters = [ordered]@{
+    Name         = 'TextBlob1'
+    CompressType = 2
+    Content      = [Base64]'Foo'
+    Period       = 60
 }
 #>
 #endregion ############ End BA Example Methods ############
@@ -66,48 +76,39 @@ $Parameters = [ordered]@{
 
 #region ############ OA Example Methods ############
 #<# One liner example for pem.statistics.getStatisticsReport
-Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123'
+Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports = @(@{name = 'poaVersion'; value = '0' }) } -Server '123.123.123.123'
 #>
 
 #<# Example pem.getSubscription
 $Method = 'pem.getSubscription'
-$Parameters = [ordered]@{
+$Parameters = @{
     'subscription_id' = $Subscription
-    'get_resources' = $true
+    'get_resources'   = $true
 }
 #>
 
 #<# Example pem.batchRequest of pem.statistics.getStatisticsReport and pem.getSubscription
 $Method = 'pem.batchRequest'
-$getStatisticsReport = @{operation = 'pem.statistics.getStatisticsReport' ; parameters =@(@{reports=@(@{name='poaVersion'; value='0'})}) }
-$getSubscription = [ordered]@{
-    'operation' = 'pem.getSubscription'
-    'parameters' = @([ordered]@{
-        'subscription_id' = $Subscription
-        'get_resources' = $true
-    })
+$getStatisticsReport = @{operation = 'pem.statistics.getStatisticsReport' ; parameters = @(@{reports = @(@{name = 'poaVersion'; value = '0' }) }) }
+$getSubscription = @{
+    'operation'  = 'pem.getSubscription'
+    'parameters' = @(@{
+            'subscription_id' = $Subscription
+            'get_resources'   = $true
+        })
 }
-$Parameters = @($getStatisticsReport,$getSubscription)
+$Parameters = @($getStatisticsReport, $getSubscription)
 #>
 
 #<# Example pem.setMemberSubscriptionRestrictions
 $Method = 'pem.setMemberSubscriptionRestrictions'
-$restrictions = [ordered]@{
+$restrictions = @{
     'access_all_subscriptions' = $false
-    'subscriptions' = @($Subscription,1000753)
+    'subscriptions'            = @($Subscription, 1000753)
 }
-$Parameters = [ordered]@{
-    'member_id' = 1000343
+$Parameters = @{
+    'member_id'    = 1000343
     'restrictions' = $restrictions
-}
-#>
-
-#<# Fake Example with Base64
-# To use the Base64 Class you need to load it the first time from the module with the command "Import-Module Invoke-OdinApi-master"
-$Method = 'pem.TestNotReal'
-$Parameters = [ordered]@{
-    'subscription_id' = $Subscription
-    'get_resources' = [Base64]'Base64Text'
 }
 #>
 #endregion ############ End OA Example Methods ############
@@ -119,16 +120,14 @@ $Fqdn = '123.123.123.123'
 
 $Out = $null
 # For Business Automation
-$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -SendTo $Fqdn #-Verbose #-Execute:$false #-OutputXml
+$Out = Invoke-OdinApi -BA -Method $Method -Parameters $Parameters -Server $Fqdn
 # For Operations Automation
-$Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -SendTo $Fqdn -OutputXml #-Verbose
+$Out = Invoke-OdinApi -OA -Method $Method -Parameters $Parameters -Server $Fqdn
 
-if ($Out -is [System.Xml.XmlDocument])
-{
+if ($Out -is [System.Xml.XmlDocument]) {
     Format-Xml -Xml $Out
 }
-else
-{
+else {
     $Out
 }
 

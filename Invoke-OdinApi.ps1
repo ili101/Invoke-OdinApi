@@ -1,386 +1,239 @@
-﻿<#
-class Base64
-{
-    [string]$ItemName
-
-    Base64([string]$String)
-    {
-        $this.ItemName = $String
-    }
-
-    [string]ToString()
-    {
-        return $this.ItemName
-    }
-}
-#>
-
-if (!([System.Management.Automation.PSTypeName]'Base64').Type)
-{
-    Add-Type -Language CSharp -TypeDefinition @"
-public class Base64
-{
-    public string ItemName;
-
-    public Base64(string Str)
-    {
-        ItemName = Str;
-    }
-
-    public override string ToString()
-    {
-        return ItemName;
-    }
-}
-"@
+﻿$ErrorActionPreference = 'Stop'
+class XmlRpcOdinFaultException : Exception {
+    XmlRpcOdinFaultException($Message) : base($Message) { }
+    XmlRpcOdinFaultException($Message, $InnerException) : base($Message, $InnerException) { }
 }
 
-function ConvertFrom-OdinApiXml
-{
+function Invoke-OdinApi {
     <#
         .SYNOPSIS
-        convert API XML response to Object
+        Execute OA/BA API commands.
         .DESCRIPTION
-        If "-OutputXml" switch was used on Invoke-OdinApi you can then run this to convert the XML
+        Execute Odin "Operations Automation" and "Business Automation" API commands.
         .EXAMPLE
-        ConvertFrom-OdinApiXml -Xml $Xml
+        Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -Server '123.123.123.123'
         .LINK
         https://github.com/ili101/Invoke-OdinApi
     #>
-    [CmdletBinding(HelpURI='https://github.com/ili101/Invoke-OdinApi')]
+    [CmdletBinding(HelpURI = 'https://github.com/ili101/Invoke-OdinApi', SupportsShouldProcess, ConfirmImpact = 'Low')]
     param
     (
-        [Parameter(Mandatory=$true, Position=1)]
-        $Xml
-    )
+        # Send Business Automation API command.
+        [Parameter(ParameterSetName = 'Business Automation', Mandatory)]
+        [switch]$BA,
 
-    if ($Xml -is [System.Xml.XmlDocument])
-    {
-        $Xml = $Xml.methodResponse
-    }
-    if ($Xml.Name -eq 'params')
-    {
-        $Xml = $Xml.FirstChild
-    }
-    if ($Xml.Name -eq 'param')
-    {
-        $Xml = $Xml.FirstChild
-    }
-    if ($Xml.Name -eq 'value')
-    {
-        $Xml = $Xml.FirstChild
-    }
-    if ($Xml.Name -eq 'methodResponse')
-    {
-        $Response = ConvertFrom-OdinApiXml -Xml $Xml.FirstChild
-        if ($Response.error_message)
-        {
-            Write-Error -Message ('Odin Error: error_code: "{0}", error_message: "{1}"' -f $Response.error_code,$Response.error_message)
-        }
-    }
-    elseif ($Xml.Name -eq 'struct')
-    {
-        $Response = @{}
-        $Xml.member | ForEach-Object -Process {
-            $Response.Add($_.name, (ConvertFrom-OdinApiXml -Xml ($_.value)))
-        }
-        $Response = New-Object -TypeName PSObject -Property $Response
-    }
-    elseif($Xml.Name -eq 'array')
-    {
-        $Response = @()
-        if ($Xml.data.value)
-        {
-            $Xml.data.value | ForEach-Object -Process {
-                $Response += , (ConvertFrom-OdinApiXml -Xml ($_))
-            }
-        }
-    }
-    elseif($Xml.Name -eq 'fault')
-    {
-        $Response = ConvertFrom-OdinApiXml -Xml ($Xml.value)
-        $Response.faultString = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Response.faultString)))
-        Write-Error -Message ('Odin Error: faultCode: "{0}", faultString: "{1}"' -f $Response.faultCode,$Response.faultString)
-    }
-    elseif($Xml.Name -eq 'i4')
-    {
-        [int]$Response = $Xml.InnerXml
-    }
-    elseif($Xml.Name -eq 'boolean')
-    {
-        [boolean]$Response = [int]::Parse($Xml.InnerXml)
-    }
-    elseif($Xml.Name -eq 'double')
-    {
-        [Double]$Response = $Xml.InnerXml
-    }
-    else
-    {
-        $Response = $Xml.InnerXml
-    }
+        # Send Operations Automation API command.
+        [Parameter(ParameterSetName = 'Operations Automation', Mandatory)]
+        [switch]$OA,
 
-    Write-Verbose -Message ($Response | Out-String)
-    , $Response
-}
-
-function Invoke-OdinApi
-{
-    <#
-        .SYNOPSIS
-        Execute OA/BA API commands
-        .DESCRIPTION
-        Execute Odin "Operations Automation" and "Business Automation" API commands
-        .EXAMPLE
-        Invoke-OdinApi -OA -Method 'pem.statistics.getStatisticsReport' -Parameters @{reports=@(@{name='poaVersion'; value='0'})} -SendTo '123.123.123.123:8440'
-        .LINK
-        https://github.com/ili101/Invoke-OdinApi
-    #>
-    [CmdletBinding(HelpURI='https://github.com/ili101/Invoke-OdinApi')]
-    param
-    (
-        # Send Business Automation API command, See http://download.automation.odin.com/oa/7.0/oapremium/portal/en/billing_api_reference/55879.htm for the list of methods and parameters.
-        [Parameter(
-            ParameterSetName='Business Automation',
-            Mandatory=$true, Position=0)]
-        [switch]
-        $BA,
-        # Send Operations Automation API command, See http://download.automation.odin.com/oa/7.0/oapremium/portal/en/operations_api_reference/55879.htm for the list of methods and parameters.
-        [Parameter(
-            ParameterSetName='Operations Automation',
-            Mandatory=$true, Position=0)]
-        [switch]
-        $OA,
         # The Method name.
-        [Parameter(Mandatory=$true, Position=1)]
-        [System.String]
-        $Method,
+        [Parameter(Mandatory)]
+        [String]$Method,
+
         # The methods parameters, Ordered hashtable required for BA, ordered hashtable or a normal hashtable required for OA.
-        [Parameter(Mandatory=$true, Position=2)]
         $Parameters,
-        # IP to send the call to, if not provided the API request is returned.
-        [Parameter(Mandatory=$false, Position=3)]
-        [System.String]
-        $SendTo = $null,
-        # Return the unconverted result XML
-        [Parameter(Mandatory=$false, Position=4)]
-        [switch]
-        $OutputXml,
-        # Add MD5 Order Signature for "OrderStatusChange_API", Require -SendTo and 'OrderID' in the -Parameters.
-        [Parameter(ParameterSetName='Business Automation', Mandatory=$false, Position=4)]
-        [switch]
-        $AddSignature = $false,
-        # If set to False override -SendTo and prevent sending the API call, can be used to generate request with MD5 signature.
-        [Parameter(Mandatory=$false, Position=4)]
-        [switch]
-        $Execute = $true,
-        # language.
-        [Parameter(Position=5)]
-        [String]
-        $language = 'iw',
-        [Parameter(ParameterSetName='Business Automation')]
-        [String]
-        $BaServerString = 'BM'
+
+        # IP to send the call to, if not provided the API XML request is returned.
+        [String]$Server,
+
+        # The server port.
+        [Int]$Port,
+
+        # Use https.
+        [Switch]$UseSsl,
+
+        # Return the unconverted result XML.
+        [Switch]$OutputXml,
+
+        # Add MD5 Order Signature for "OrderStatusChange_API", Require -Server and "OrderID" in the -Parameters.
+        [Parameter(ParameterSetName = 'Business Automation')]
+        [Switch]$AddSignature,
+
+        # Language.
+        [Parameter(ParameterSetName = 'Business Automation')]
+        [String]$language,
+
+        # Billing executing engine.
+        [Parameter(ParameterSetName = 'Business Automation')]
+        [String]$ServerString = 'BM',
+
+        # Billing Credentials.
+        [Parameter(ParameterSetName = 'Business Automation')]
+        [PSCredential]$Credential
     )
+    # if ($Parameters -isnot [Collections.Hashtable] -and $Parameters -isnot [Collections.Specialized.OrderedDictionary] -and $Parameters -isnot [System.Array]) {
+    #     $PSCmdlet.ThrowTerminatingError(
+    #         [Management.Automation.ErrorRecord]::new(
+    #             [ArgumentException]::new('Parameters is not a hashtable or array'),
+    #             'Incompatible Arguments',
+    #             [Management.Automation.ErrorCategory]::InvalidArgument,
+    #             $Parameters
+    #         )
+    #     )
+    # }
 
-    if ($BA)
-    {
-        if ($Parameters -isnot [System.Collections.Specialized.OrderedDictionary])
-        {
-            Write-Error -Message 'Error: Parameters is not an ordered hashtable'
-            Return
+    $RequestXML = if ($BA) {
+        $WrapperParameters = @{
+            Server = $ServerString
+            Method = $Method
         }
-
-        if ($AddSignature)
-        {
-            if (!$SendTo)
-            {
-                Write-Error -Message '-AddSignature require -SendTo'
-                Return
+        if ($Parameters) {
+            $WrapperParameters['Params'] = $Parameters
+        }
+        if ($Language) {
+            $WrapperParameters['Lang'] = $Language
+        }
+        if ($Credential) {
+            $WrapperParameters['Username'] = $Credential.UserName
+            $WrapperParameters['Password'] = $Credential.GetNetworkCredential().Password
+        }
+        if ($AddSignature) {
+            if (!$Server) {
+                $PSCmdlet.ThrowTerminatingError(
+                    [Management.Automation.ErrorRecord]::new(
+                        [ArgumentException]::new('-AddSignature require -Server'),
+                        'Incompatible Arguments',
+                        [Management.Automation.ErrorCategory]::InvalidArgument,
+                        $Server
+                    )
+                )
             }
-            if ($Parameters['OrderID'] -isnot [int])
-            {
-                Write-Error -Message '-AddSignature require "OrderID" in the -Parameters'
-                Return
+            if ($Parameters['OrderID'] -isnot [int]) {
+                $PSCmdlet.ThrowTerminatingError(
+                    [Management.Automation.ErrorRecord]::new(
+                        [ArgumentException]::new('-AddSignature require "OrderID" in the -Parameters'),
+                        'Incompatible Arguments',
+                        [Management.Automation.ErrorCategory]::InvalidArgument,
+                        $Parameters
+                    )
+                )
             }
-            $GetOrder_API = Invoke-OdinApi -BA -Method 'GetOrder_API' -Parameters ([ordered]@{'OrderID' = $Parameters['OrderID']}) -SendTo $SendTo
+            $GetOrder_API = Invoke-OdinApi -BA -Method 'GetOrder_API' -Parameters ([ordered]@{ 'OrderID' = $Parameters['OrderID'] }) -Server $Server
 
             $OrderID = $GetOrder_API.Result[0][0]
             $OrderNumber = $GetOrder_API.Result[0][1].Trim()
             $CreationTime = $GetOrder_API.Result[0][6]
-            $Total = '{0} {1:N2}' -f $GetOrder_API.Result[0][17],$GetOrder_API.Result[0][8]
+            $Total = '{0} {1:N2}' -f $GetOrder_API.Result[0][17], $GetOrder_API.Result[0][8]
             $Comments = $GetOrder_API.Result[0][12].Trim()
-            $SignatureString = @($OrderID,$OrderNumber,$CreationTime,$Total,$Comments) -join ''
-            Write-Verbose -Message ("MD5 Signature String: $SignatureString")
+            $SignatureString = @($OrderID, $OrderNumber, $CreationTime, $Total, $Comments) -join ''
+            Write-Verbose -Message "MD5 Signature String: $SignatureString"
 
-            $Md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
-            $Utf8 = New-Object -TypeName System.Text.UTF8Encoding
-            $SignatureMd5 = [System.BitConverter]::ToString($Md5.ComputeHash($Utf8.GetBytes($SignatureString))).ToLower() -replace '-', ''
+            $Md5 = [Security.Cryptography.MD5CryptoServiceProvider]::new()
+            $Utf8 = [Text.UTF8Encoding]::new()
+            $SignatureMd5 = [BitConverter]::ToString($Md5.ComputeHash($Utf8.GetBytes($SignatureString))).ToLower() -replace '-', ''
             Write-Verbose -Message ("MD5 Signature: $SignatureMd5")
-            $Parameters.Add('Signature',$SignatureMd5)
+            $Parameters.Add('Signature', $SignatureMd5)
+        }
+        ConvertTo-XmlRpcMethodCall -Method 'Execute' -Parameters $WrapperParameters -Int64Mode 'Error'
+    }
+    elseif ($OA) {
+        if ($PSBoundParameters.ContainsKey('Parameters')) {
+            ConvertTo-XmlRpcMethodCall -Method $Method -Int64Mode 'BigInt' -Parameters $Parameters
+        }
+        else {
+            ConvertTo-XmlRpcMethodCall -Method $Method -Int64Mode 'BigInt'
+        }
+    }
+
+    if ($Server -and $PSCmdlet.ShouldProcess($Server, ('Execute the "{0}" API' -f $Method))) {
+        if (!$PSBoundParameters.ContainsKey('Int')) {
+            if ($BA) { $Port = '5224' } else { $Port = '8440' }
+        }
+        if ($UseSsl) {
+            $Url = 'https://' + $Server + ':' + $Port
+        }
+        else {
+            $Url = 'http://' + $Server + ':' + $Port
         }
 
+        $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method 'Post'
+        $ResponseXML = [Xml][System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes($ResponseXML.InnerXml))
 
-        # Create The Document
-        $RequestXML = New-Object -TypeName xml
-        $null = $RequestXML.AppendChild($RequestXML.CreateXmlDeclaration('1.0','UTF-8',$null))
-
-        $TempElement = $RequestXML.AppendChild($RequestXML.CreateElement('methodCall'))
-            $TempElement.AppendChild($RequestXML.CreateElement('methodName')).InnerText = 'Execute'
-            $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('params'))
-                $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('param'))
-                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
-                        $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
-                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Server'
-                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $BaServerString
-
-                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Method'
-                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $Method
-
-                            if ($language)
-                            {
-                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Lang'
-                                $TempElement.AppendChild($RequestXML.CreateElement('value')).InnerText = $language
-                            }
-
-                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = 'Params'
-                                $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
-                                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('array'))
-                                        $dataElement = $TempElement.AppendChild($RequestXML.CreateElement('data'))
-                                            ForEach ($Parameter in $Parameters.GetEnumerator())
-                                            {
-                                                $null = $dataElement.AppendChild($RequestXML.CreateComment($Parameter.Key))
-                                                $TempElement = $dataElement.AppendChild($RequestXML.CreateElement('value'))
-                                                    if ($Parameter.Value -is [int])
-                                                    {
-                                                        $TempElement.AppendChild($RequestXML.CreateElement('i4')).InnerText = $Parameter.Value
-                                                    }
-                                                    elseif ($Parameter.Value -is [double])
-                                                    {
-                                                        $TempElement.AppendChild($RequestXML.CreateElement('double')).InnerText = $Parameter.Value
-                                                    }
-                                                    elseif ($Parameter.Value -is [string])
-                                                    {
-                                                        $TempElement.InnerText = $Parameter.Value
-                                                    }
-                                                    elseif ($Parameter.Value -is [System.Collections.Hashtable] -or $Parameter.Value -is [System.Collections.Specialized.OrderedDictionary]) #struct
-                                                    {
-                                                        $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
-                                                            ForEach ($Param in $Parameter.Value.GetEnumerator())
-                                                            {
-                                                                Write-Verbose -Message ($Param | Out-String)
-                                                                $memberElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                                                    $memberElement.AppendChild($RequestXML.CreateElement('name')).InnerText = $Param.Name
-                                                                    $TempElement = $memberElement.AppendChild($RequestXML.CreateElement('value'))
-                                                                    $TempElement.AppendChild($RequestXML.CreateElement('string')).InnerText = $Param.Value
-                                                            }
-                                                    }
-                                                    else
-                                                    {
-                                                        Write-Error -Message ('Parameter "{0}" is of unsupported type "{1}"' -f $Parameter.Key,$Parameter.GetType().Name)
-                                                        Return
-                                                    }
-                                            }
-    }
-    elseif ($OA)
-    {
-        if ($Parameters -isnot [System.Collections.Hashtable] -and $Parameters -isnot [System.Collections.Specialized.OrderedDictionary] -and $Parameters -isnot [System.Array])
-        {
-            Write-Error -Message 'Error: Parameters is not a hashtable or array'
-            Return
-        }
-
-        # Create The Document
-        $RequestXML = New-Object -TypeName xml
-        $null = $RequestXML.AppendChild($RequestXML.CreateXmlDeclaration('1.0','UTF-8',$null))
-
-        $TempElement = $RequestXML.AppendChild($RequestXML.CreateElement('methodCall'))
-            $TempElement.AppendChild($RequestXML.CreateElement('methodName')).InnerText = $Method
-            $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('params'))
-                ForEach ($Parameter in $Parameters)
-                {
-                        if ($Parameter -isnot [System.Collections.Hashtable] -and $Parameter -isnot [System.Collections.Specialized.OrderedDictionary])
-                        {
-                            Write-Error -Message 'Error: Parameters array do not contain a hashtable'
-                            Return
-                        }
-                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('param'))
-                        function Set-Members
-                        {
-                            param ($Parameter = $null)
-                            $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('value'))
-                                if ($Parameter -is [int])
-                                {
-                                    $TempElement.AppendChild($RequestXML.CreateElement('int')).InnerText = $Parameter
-                                }
-                                elseif ($Parameter -is [Int64])
-                                {
-                                    $TempElement.AppendChild($RequestXML.CreateElement('bigint')).InnerText = $Parameter
-                                }
-                                elseif ($Parameter -is [string])
-                                {
-                                    $TempElement.AppendChild($RequestXML.CreateElement('string')).InnerText = $Parameter
-                                }
-                                elseif ($Parameter -is [Boolean])
-                                {
-                                    $TempElement.AppendChild($RequestXML.CreateElement('boolean')).InnerText = if ($Parameter) {1} else {0}
-                                }
-                                elseif ($Parameter -is [Base64])
-                                {
-                                    $TempElement.AppendChild($RequestXML.CreateElement('base64')).InnerText = $Parameter
-                                }
-                                elseif ($Parameter -is [System.Collections.Hashtable] -or $Parameter -is [System.Collections.Specialized.OrderedDictionary]) #struct
-                                {
-                                    $structElement = $TempElement.AppendChild($RequestXML.CreateElement('struct'))
-                                        ForEach ($Param in $Parameter.GetEnumerator())
-                                        {
-                                            Write-Verbose -Message ($Param | Out-String)
-                                            $TempElement = $structElement.AppendChild($RequestXML.CreateElement('member'))
-                                                $TempElement.AppendChild($RequestXML.CreateElement('name')).InnerText = $Param.Key
-                                                Set-Members -Parameter $Param.Value
-                                        }
-                                }
-                                elseif ($Parameter -is [System.Array]) #array
-                                {
-                                    $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('array'))
-                                        $TempElement = $TempElement.AppendChild($RequestXML.CreateElement('data'))
-                                            ForEach ($Item in $Parameter)
-                                            {
-                                                Write-Verbose -Message ($Item | Out-String)
-                                                Set-Members -Parameter $Item
-                                            }
-                                }
-                                else
-                                {
-                                    Write-Error -Message ('Parameter "{0}" is of unsupported type "{1}"' -f $Parameter,$Parameter.GetType().Name)
-                                    Return
-                                }
-                        }
-                    Set-Members -Parameter $Parameter
-                }
-    }
-    if ($SendTo -and $Execute)
-    {
-        Write-Verbose -Message $RequestXML.InnerXml
-        if ($BA) {$Port = '5224'} else {$Port = '8440'}
-        $Url = 'http://' + $SendTo + ':' +  $Port
-        $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method Post
-        $ResponseXML = [xml][System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes($ResponseXML.InnerXml))
-
-        if ($OutputXml)
-        {
+        if ($OutputXml) {
             $ResponseXML
         }
-        else
-        {
-            ConvertFrom-OdinApiXml -Xml $ResponseXML
+        elseif ($BA) {
+            ConvertFrom-OdinApiXml -Xml $ResponseXML -BA
+        }
+        elseif ($OA) {
+            ConvertFrom-OdinApiXml -Xml $ResponseXML -OA
         }
     }
-    else
-    {
+    else {
         $RequestXML
+    }
+}
+function ConvertFrom-OdinApiXml {
+    <#
+        .SYNOPSIS
+        Convert API XML response to Object.
+
+        .DESCRIPTION
+        If "-OutputXml" switch was used on Invoke-OdinApi you can then run this to convert the XML.
+
+        .EXAMPLE
+        ConvertFrom-XmlRpc -Xml $Xml -BA
+
+        .LINK
+        https://github.com/ili101/Invoke-OdinApi
+    #>
+    [CmdletBinding(HelpURI = 'https://github.com/ili101/Invoke-OdinApi')]
+    param
+    (
+        [Parameter(Mandatory)]
+        $Xml,
+
+        # Decode Business Automation XML.
+        [Parameter(ParameterSetName = 'Business Automation', Mandatory)]
+        [switch]$BA,
+
+        # Decode Operations Automation XML.
+        [Parameter(ParameterSetName = 'Operations Automation', Mandatory)]
+        [switch]$OA
+    )
+
+    if ($BA) {
+        try {
+            ConvertFrom-XmlRpc -Xml $Xml
+        }
+        catch [XmlRpcFaultException] {
+            $ResponseObj = $_.TargetObject
+            try {
+                $ResponseObj.faultString = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($ResponseObj.faultString))
+            }
+            catch { }
+
+            $PSCmdlet.ThrowTerminatingError(
+                [Management.Automation.ErrorRecord]::new(
+                    [XmlRpcOdinFaultException]::new(('XmlRpc Odin Fault: faultCode: "{0}", faultString: "{1}".' -f $ResponseObj.faultCode, $ResponseObj.faultString)),
+                    'XmlRpc Odin Fault',
+                    [Management.Automation.ErrorCategory]::InvalidArgument,
+                    $ResponseObj
+                )
+            )
+        }
+    }
+    else {
+        $ResponseObj = ConvertFrom-XmlRpc -Xml $Xml
+        if ($ResponseObj.status -ne 0) {
+            $PSCmdlet.ThrowTerminatingError(
+                [Management.Automation.ErrorRecord]::new(
+                    [XmlRpcOdinFaultException]::new(
+                        ('XmlRpc Odin Fault: status: "{0}", error_code: "{1}", extype_id: "{2}", module_id: "{3}", error_message: "{4}".' -f @(
+                                $ResponseObj.status,
+                                $ResponseObj.error_code,
+                                $ResponseObj.extype_id,
+                                $ResponseObj.module_id,
+                                $ResponseObj.error_message
+                            ))),
+                    'XmlRpc Odin Fault',
+                    [Management.Automation.ErrorCategory]::InvalidArgument,
+                    $ResponseObj
+                )
+            )
+        }
+        else {
+            $ResponseObj
+        }
     }
 }
