@@ -115,7 +115,7 @@ More information on the module and XML-RPC at https://github.com/ili101/Invoke-O
             # ReleaseNotes of this module
             ReleaseNotes = @'
 Change Log
-https://github.com/ili101/Invoke-OdinApi/blob/master/ChangeLog.md
+https://github.com/ili101/Invoke-OdinApi/blob/master/CHANGELOG.md
 '@
 
             # External dependent modules of this module

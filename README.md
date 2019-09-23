@@ -44,4 +44,4 @@ Format-Xml was written by Jaykul credit goes to him, for the latest version see 
 [Invoke-OdinApi Example.ps1](https://github.com/ili101/Invoke-OdinApi/blob/master/Examples/Invoke-OdinApi%20Example.ps1)
 
 ### ChangeLog:
-[ChangeLog.md](https://github.com/ili101/Invoke-OdinApi/blob/master/ChangeLog.md)
+[CHANGELOG.md](https://github.com/ili101/Invoke-OdinApi/blob/master/CHANGELOG.md)
