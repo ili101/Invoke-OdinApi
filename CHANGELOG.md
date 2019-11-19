@@ -1,3 +1,7 @@
+## 2.0.1 - 2019-11-19
+* Remove UTF-8 BOM.
+* Change log fix.
+
 ## 2.0.0 - 2019-09-23
 * Separated the module to `XmlRpc.ps1` (XML-RPC standard) and `Invoke-OdinApi.ps1` (Specific Odin implementation).
 * XML-RPC uses recursion.
