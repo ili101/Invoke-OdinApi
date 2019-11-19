@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 class XmlRpcOdinFaultException : Exception {
     XmlRpcOdinFaultException($Message) : base($Message) { }
     XmlRpcOdinFaultException($Message, $InnerException) : base($Message, $InnerException) { }

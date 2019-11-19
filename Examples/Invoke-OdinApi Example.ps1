@@ -1,4 +1,4 @@
-﻿Pause
+Pause
 [int]$Subscription = 1001880
 
 #region ############ BA Example Methods ############

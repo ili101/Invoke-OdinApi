@@ -1,4 +1,4 @@
-﻿function Format-Xml
+function Format-Xml
 {
     #.Synopsis
     #   Pretty-print formatted XML source
