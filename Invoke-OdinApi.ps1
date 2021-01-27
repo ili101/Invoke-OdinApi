@@ -59,7 +59,9 @@ function Invoke-OdinApi {
 
         # Billing Credentials.
         [Parameter(ParameterSetName = 'Business Automation')]
-        [PSCredential]$Credential
+        [PSCredential]$Credential,
+
+        [Switch]$SkipCertificateCheck
     )
     # if ($Parameters -isnot [Collections.Hashtable] -and $Parameters -isnot [Collections.Specialized.OrderedDictionary] -and $Parameters -isnot [System.Array]) {
     #     $PSCmdlet.ThrowTerminatingError(
@@ -136,7 +138,7 @@ function Invoke-OdinApi {
     }
 
     if ($Server -and $PSCmdlet.ShouldProcess($Server, ('Execute the "{0}" API' -f $Method))) {
-        if (!$PSBoundParameters.ContainsKey('Int')) {
+        if (!$PSBoundParameters.ContainsKey('Port')) {
             if ($BA) { $Port = '5224' } else { $Port = '8440' }
         }
         if ($UseSsl) {
@@ -145,8 +147,14 @@ function Invoke-OdinApi {
         else {
             $Url = 'http://' + $Server + ':' + $Port
         }
+        $InvokeParams = if ($SkipCertificateCheck) {
+            @{ SkipCertificateCheck = $true }
+        }
+        else {
+            @{ }
+        }
 
-        $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method 'Post'
+        $ResponseXML = Invoke-RestMethod -Uri $Url -Body $RequestXML -Method 'Post' @InvokeParams
         $ResponseXML = [Xml][System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes($ResponseXML.InnerXml))
 
         if ($OutputXml) {

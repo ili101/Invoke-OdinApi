@@ -1,3 +1,7 @@
+## 2.0.2 - 2021-01-27
+* Fix Port override.
+* Added SkipCertificateCheck.
+
 ## 2.0.1 - 2019-11-19
 * Remove UTF-8 BOM.
 * Change log fix.
