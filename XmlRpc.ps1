@@ -212,8 +212,8 @@ function ConvertFrom-XmlRpc {
         }
         elseif ($Xml.Name -eq 'array') {
             , @(foreach ($DataValue in $Xml.data.value) {
-                ConvertFrom-XmlRpc -Xml $DataValue
-            })
+                    ConvertFrom-XmlRpc -Xml $DataValue
+                })
         }
         elseif ($Xml.Name -in 'i4', 'int') {
             [int]$Xml.InnerXml
@@ -225,7 +225,7 @@ function ConvertFrom-XmlRpc {
             [Double]$Xml.InnerXml
         }
         elseif ($Xml.Name -eq 'string') {
-            $Xml.InnerXml
+            $Xml.InnerText
         }
         else {
             $PSCmdlet.ThrowTerminatingError(

@@ -1,3 +1,6 @@
+## 2.0.3 - 2023-06-04
+* Fix string values with the symbols "&<>" where returned with the XML escaped format.
+
 ## 2.0.2 - 2021-01-27
 * Fix Port override.
 * Added SkipCertificateCheck.
